@@ -89,7 +89,10 @@ from rclpy.node import Node
 
 from face_msgs.srv import Face
 
-
+"""
+顔検出パッケージのサービス側
+送られてきた画像を顔検出器にかけて、顔の座標・大きさを返す
+"""
 class Service(Node):
     def __init__(self):
         super().__init__("listener")
@@ -136,7 +139,13 @@ from sensor_msgs.msg import Image
 
 from face_msgs.srv import Face
 
-
+"""
+顔検出パッケージのクライアント側
+要求された周波数・ビデオデバイスを用いて、
+映像取得・グレースケール変換・サービス側への送信をする。
+サービス側から顔が検出された座標・大きさが返ってきたら、
+マーカーを引き、映像確認用のトピックに流す。
+"""
 class Client(Node):
     def __init__(self):
         super().__init__("client")
