@@ -1,34 +1,34 @@
 演習2で独自メッセージを作成したときに参考にした[Creating custom ROS 2 msg and srv files](https://docs.ros.org/en/foxy/Tutorials/Custom-ROS2-Interfaces.html)で、
-`publisher/subscriber通信`ではなく、`service/client通信`という通信方法ががあったため、これを試す。
-## publisher/subscriber通信との違い
-`publisher/subscriber通信`では、`publisher`は`topic`に対してメッセージを送信し、`subscriber`は`topic`からメッセージをもらってくる通信モデルである。
-一方で、`service/client通信`では、`service`から`client`に、`client`から`service`に対して、相互にメッセージを送信することができる。いわゆるソケット通信のクライアント・サーバモデルみたいなもの。
+`トピック通信`ではなく、`サービス通信`という通信方法ががあったため、これを試す。
+## トピック通信との違い
+`トピック通信`では、`publisher`は`topic`に対してメッセージを送信し、`subscriber`は`topic`からメッセージをもらってくる通信モデルである。
+一方で、`サービス通信`では、`server`から`client`に、`client`から`server`に対して、相互にメッセージを送信することができる。いわゆるソケット通信のクライアント・サーバモデルみたいなもの。
 
 ## 作成する題材
-`service/client通信`でカメラを用いた人の顔の検出を行う。処理手順は以下のとおりである。
+`サービス通信`でカメラを用いた人の顔の検出を行う。処理手順は以下のとおりである。
 - client 
   1. カメラから画像を入力し、画像をグレースケールに変換
-  2. グレースケール画像を`service`に送信
-  3. `service`から座標と大きさの受信
+  2. グレースケール画像を`server`に送信
+  3. `server`から座標と大きさの受信
   4. 座標と大きさからマーカー描画
   5. Image型のトピックに画像送信(確認用)
-- service
+- server
   1. グレースケール画像受信
   2. 顔の検出(今回はハールカスケードを使う)
   3. 検出した座標と大きさを`client`に送信
 
 
 ## 作成する手順
-はじめに、`service/client通信`で用いる独自メッセージを作成する。その後、`service`と`client`を作成する。  
+はじめに、`サービス通信`で用いる独自メッセージを作成する。その後、`server`と`client`を作成する。  
 
-## `service/client通信`で用いる独自メッセージの作成
+## `サービス通信`で用いる独自メッセージの作成
 1. パッケージの作成  
 ```bash
 $ ros2 pkg create --build-type ament_cmake face_msgs && cd face_msgs/
 ```  
 2. 独自メッセージの定義  
-メッセージには、`client`から送信する画像image、`service`から送信する顔が検出された左上のx,y座標とその大きさw,hを含める。
-`---`をデリミタとして`service`が`client`に送信するメッセージを上に、`service`が`client`から受信するメッセージを下に記述すれば良い。また、後述する顔検出で、検出する関数が`numpy.int32`を返すので、それにビット幅を合わせておく。
+メッセージには、`client`から送信する画像image、`server`から送信する顔が検出された左上のx,y座標とその大きさw,hを含める。
+`---`をデリミタとして`server`が`client`に送信するメッセージを上に、`server`が`client`から受信するメッセージを下に記述すれば良い。また、後述する顔検出で、検出する関数が`numpy.int32`を返すので、それにビット幅を合わせておく。
 ```bash
 $ mkdir srv && cd srv
 $ echo -e \
@@ -66,9 +66,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   face_msgs/srv/Face
   ```
   
-## `service/client通信`でのアプリケーションの作成    
-`service`と`client`が実装すべき処理は[作成する題材](#作成する題材)で記述したとおりである。  
-また、パラメータとして、`service`ではカスケード分類器のファイルパス、`client`ではカメラのデバイス番号と顔検出処理の周波数を指定する。  
+## `サービス通信`でのアプリケーションの作成    
+`server`と`client`が実装すべき処理は[作成する題材](#作成する題材)で記述したとおりである。  
+また、パラメータとして、`server`ではカスケード分類器のファイルパス、`client`ではカメラのデバイス番号と顔検出処理の周波数を指定する。  
 1. パッケージの作成  
  ```bash 
  $ ros2 pkg create --build-type ament_python face_detect && cd face_detect/
@@ -78,10 +78,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 $ wget https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
 ```
 3. 実装  
- service.py、client.py、launch.pyの3つを以下のようにした。  
+ server.py、client.py、launch.pyの3つを以下のようにした。  
  
-  - face_detect/service.py  
-```python:service.py
+  - face_detect/server.py  
+```python:server.py
 import cv2
 import rclpy
 from cv_bridge import CvBridge
@@ -93,7 +93,7 @@ from face_msgs.srv import Face
 顔検出パッケージのサービス側
 送られてきた画像を顔検出器にかけて、顔の座標・大きさを返す
 """
-class Service(Node):
+class Server(Node):
     def __init__(self):
         super().__init__("listener")
         self.declare_parameter("cascade_path", "")
@@ -117,9 +117,9 @@ class Service(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    service = Service()
-    rclpy.spin(service)
-    service.destroy_node()
+    server = Server()
+    rclpy.spin(server)
+    server.destroy_node()
     rclpy.shutdown()
 
 
@@ -218,7 +218,7 @@ def generate_launch_description():
             ),
             Node(
                 package="face_detect",
-                node_executable="service",
+                node_executable="server",
                 output="screen",
                 parameters=[
                     {
@@ -250,7 +250,7 @@ from glob import glob
 ```
 さらに、entry_pointsに以下を追記する。  
 ```python
-"client=face_detect.client:main", "service=face_detect.service:main",
+"client=face_detect.client:main", "server=face_detect.server:main",
 ```
 6. ビルド  
 ```bash

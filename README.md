@@ -1,7 +1,7 @@
 
 ## 学習メモ
 
-- [Service/Client通信で人の顔検出を行う](https://github.com/DYGV/ros2_practice/blob/master/memo/srv_cli.md)
+- [サービス通信で人の顔検出を行う](https://github.com/DYGV/ros2_practice/blob/master/memo/srv_cli.md)
 - [gazeboでturtlebot3の走行と障害物回避](https://github.com/DYGV/ros2_practice/blob/master/memo/gazebo_turtlebot3.md)
  
 ## Docker
