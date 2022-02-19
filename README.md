@@ -2,8 +2,7 @@
 ## 学習メモ
 作成したものはdev_ws.zipにまとめている  
 (Dockerfileでワークスペースのディレクトリをコピーするのにファイルサイズを減らしたいのでdev_ws.zipに圧縮済み)  
-- [独自メッセージとパラメータの作り方 手順](https://github.com/DYGV/enpit_ros2/blob/master/memo/custom_msg.md)  
-- [Service/Client通信]()
+- [Service/Client通信で人の顔検出を行う]()https://github.com/DYGV/ros2_practice/blob/master/memo/srv_cli.md)
 - [gazeboでturtlebot3を動かす]()
 
  
