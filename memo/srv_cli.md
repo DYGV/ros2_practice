@@ -79,9 +79,8 @@ $ wget https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/
 ```
 3. 実装  
  service.py、client.py、launch.pyの3つを以下のようにした。  
-<details>
-<summary>詳細 face_detect/service.py</summary>
-  
+ 
+  - face_detect/service.py  
 ```python:service.py
 import cv2
 import rclpy
@@ -124,13 +123,9 @@ def main(args=None):
 if __name__ == "__main__":
     main()
 ```
-</details>
 
 
-
-<details>
-<summary>詳細 face_detect/client.py</summary>
-  
+  - face_detect/client.py
 ```python:client.py
 import cv2
 import rclpy
@@ -194,10 +189,9 @@ def main(args=None):
 if __name__ == "__main__":
     main()
 ```
-</details>
 
-<details>
-<summary>詳細 launch/face_detect_launch.py</summary>
+
+  - launch/face_detect_launch.py
   
 ```python
 from launch import LaunchDescription
@@ -226,7 +220,7 @@ def generate_launch_description():
         ]
     )
 ```
-</details>
+
 
 4. `package.xml`への追記  
 先程作った独自メッセージを使うために`package.xml`の14行目あたりに以下のように追記する。  
