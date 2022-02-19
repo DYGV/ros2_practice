@@ -1,7 +1,6 @@
 
 ## 学習メモ
-作成したものはdev_ws.zipにまとめている  
-(Dockerfileでワークスペースのディレクトリをコピーするのにファイルサイズを減らしたいのでdev_ws.zipに圧縮済み)  
+
 - [Service/Client通信で人の顔検出を行う](https://github.com/DYGV/ros2_practice/blob/master/memo/srv_cli.md)
 - [gazeboでturtlebot3を動かす]()
 
@@ -10,6 +9,9 @@
 動作確認済のホストOS: Ubuntu 20.04     
 
 **[Warning]** コンテナから出たら`xhost -local:docker`すること  
+作成したものはdev_ws.zipにまとめている  
+(Dockerfileでワークスペースのディレクトリをコピーするのにファイルサイズを減らしたいのでdev_ws.zipに圧縮済み)  
+ 
 ### 初回起動
 ```
 $ DOCKER_BUILDKIT=1 docker build . -t ubuntu1804_ros2
