@@ -95,7 +95,7 @@ from face_msgs.srv import Face
 """
 class Server(Node):
     def __init__(self):
-        super().__init__("listener")
+        super().__init__("service")
         self.declare_parameter("cascade_path", "")
         self.srv = self.create_service(Face, "face_detect", self.callback)
         self.bridge = CvBridge()
