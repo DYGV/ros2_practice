@@ -1,0 +1,9 @@
+talker:
+  ros__parameters:
+    rand_min: 1
+    rand_max: 2
+    freq: 2
+
+listener:
+  ros__parameters:
+    N: 3

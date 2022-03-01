@@ -1,0 +1,8 @@
+.*
+!.gitignore
+!.github
+build/
+log/
+install/
+turtlebot3_simulations/
+haarcascade_frontalface_default.xml

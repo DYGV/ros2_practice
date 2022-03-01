@@ -1,34 +1,46 @@
+# サービス通信で人の顔検出を行う
+## 概要  
 演習2で独自メッセージを作成したときに参考にした[Creating custom ROS 2 msg and srv files](https://docs.ros.org/en/foxy/Tutorials/Custom-ROS2-Interfaces.html)で、
-`トピック通信`ではなく、`サービス通信`という通信方法ががあったため、これを試す。
-## トピック通信との違い
-`トピック通信`では、`publisher`は`topic`に対してメッセージを送信し、`subscriber`は`topic`からメッセージをもらってくる通信モデルである。
-一方で、`サービス通信`では、`server`から`client`に、`client`から`server`に対して、相互にメッセージを送信することができる。いわゆるソケット通信のクライアント・サーバモデルみたいなもの。
+`トピック通信`ではなく、`サービス通信`という通信方法ががあったため、これを試す。  
 
-## 作成する題材
-`サービス通信`でカメラを用いた人の顔の検出を行う。処理手順は以下のとおりである。
-- client 
+## 目的
+- トピック通信との違いを学ぶ
+- 独自メッセージの作り方を学ぶ
+- 独自メッセージを使ったROSパッケージの作り方を学ぶ
+- launchファイルの作り方を学ぶ
+- パラメータの作り方を学ぶ
+
+## トピック通信との違い  
+`トピック通信`は、`Publisher`は`Topic`に対してメッセージを送信し、`Subscriber`は`Topic`からメッセージをもらってくる通信モデルである。
+一方で、`サービス通信`は、`Server`から`Client`に要求(リクエスト)、`Client`から`Server`に対して応答(レスポンス)し、相互にメッセージを送信することができる。いわゆるソケット通信のクライアント・サーバモデルみたいなもの。
+
+## 作成する題材  
+`サービス通信`でカメラを用いた人の顔の検出を行う。処理手順は以下のとおりである。 
+  
+- Client 
   1. カメラから画像を入力し、画像をグレースケールに変換
-  2. グレースケール画像を`server`に送信
-  3. `server`から座標と大きさの受信
+  2. グレースケール画像を`Server`に送信
+  3. `Server`から座標と大きさの受信
   4. 座標と大きさからマーカー描画
   5. Image型のトピックに画像送信(確認用)
-- server
+- Server
   1. グレースケール画像受信
-  2. 顔の検出(今回はハールカスケードを使う)
-  3. 検出した座標と大きさを`client`に送信
+  2. 顔の検出(今回は学習済みのカスケード分類器を使う)
+  3. 検出した座標と大きさを`Client`に送信
 
 
 ## 作成する手順
-はじめに、`サービス通信`で用いる独自メッセージを作成する。その後、`server`と`client`を作成する。  
+はじめに、`サービス通信`で用いる独自メッセージを作成する。その後、`Server`と`Client`を作成する。  
 
-## `サービス通信`で用いる独自メッセージの作成
-1. パッケージの作成  
+## `サービス通信`で用いる独自メッセージの作成  
+
+### パッケージの作成  
 ```bash
 $ ros2 pkg create --build-type ament_cmake face_msgs && cd face_msgs/
 ```  
-2. 独自メッセージの定義  
-メッセージには、`client`から送信する画像image、`server`から送信する顔が検出された左上のx,y座標とその大きさw,hを含める。
-`---`をデリミタとして`server`が`client`に送信するメッセージを上に、`server`が`client`から受信するメッセージを下に記述すれば良い。また、後述する顔検出で、検出する関数が`numpy.int32`を返すので、それにビット幅を合わせておく。
+### 独自メッセージの定義  
+メッセージには、`Client`から送信する画像image、`Server`から送信する顔が検出された左上のx,y座標とその大きさw,hを含める。
+`---`をデリミタとして`Client`が`Server`に送信するメッセージ(リクエスト)を上に、`Client`が`Server`から受信するメッセージ(レスポンス)を下に記述すれば良い。また、後述する顔検出で、検出する関数が`numpy.int32`を返すので、それにビット幅を合わせておく。
 ```bash
 $ mkdir srv && cd srv
 $ echo -e \
@@ -41,47 +53,46 @@ int32 h"\
 > Face.srv
 ```
 
-3. `CMakeLists.txt`への追記  
+### `CMakeLists.txt`への追記  
 ビルドで独自メッセージを作成するのに`CMakeLists.txt`へその情報を追加する必要がある。23行目あたりに以下を追記する。  
 ```CMake
 find_package(sensor_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-        "srv/Face.srv"
-        DEPENDENCIES sensor_msgs)
+      "srv/Face.srv"
+      DEPENDENCIES sensor_msgs)
 ```
-4. `package.xml`への追記  
+### `package.xml`への追記  
 14行目あたりに以下を追記する  
 ```xml
-  <build_depend>rosidl_default_generators</build_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-  <member_of_group>rosidl_interface_packages</member_of_group>
+<build_depend>rosidl_default_generators</build_depend>
+<exec_depend>rosidl_default_runtime</exec_depend>
+<member_of_group>rosidl_interface_packages</member_of_group>
 ```
-5. ビルド  
+### ビルド
 いつもどおり`colcon build`でOK  
 ビルドが通ったら、 以下のようにインターフェースができたか確認する。  
-  ``` bash
-  $ . install/setup.bash
-  $ ros2 interface list | grep face_msgs
-  face_msgs/srv/Face
-  ```
-  
+``` bash
+$ . install/setup.bash
+$ ros2 interface list | grep face_msgs
+face_msgs/srv/Face
+```
+
 ## `サービス通信`でのアプリケーションの作成    
-`server`と`client`が実装すべき処理は[作成する題材](#作成する題材)で記述したとおりである。  
-また、パラメータとして、`server`ではカスケード分類器のファイルパス、`client`ではカメラのデバイス番号と顔検出処理の周波数を指定する。  
-1. パッケージの作成  
- ```bash 
- $ ros2 pkg create --build-type ament_python face_detect && cd face_detect/
- ```
-2. カスケード分類器のダウンロード  
+`Server`と`Client`が実装すべき処理は`作成する題材`で記述したとおりである。  
+また、パラメータとして、`Server`ではカスケード分類器のファイルパス、`Client`ではカメラのデバイス番号と顔検出処理の周波数を指定する。  
+### パッケージの作成  
+```bash 
+$ ros2 pkg create --build-type ament_python face_detect && cd face_detect/
+```
+### カスケード分類器のダウンロード  
 ```bash
 $ wget https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
 ```
-3. 実装  
- server.py、client.py、launch.pyの3つを以下のようにした。  
- 
-  - face_detect/server.py  
-```python:server.py
+  
+### face_detect/server.py  
+
+```python
 import cv2
 import rclpy
 from cv_bridge import CvBridge
@@ -101,17 +112,17 @@ class Server(Node):
         self.bridge = CvBridge()
         cascade_path = self.get_parameter("cascade_path").value
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
-        self.boxes = [0, 0, 0, 0]
 
     def callback(self, msg, pos):
+        boxes = [0, 0, 0, 0]
         image = self.bridge.imgmsg_to_cv2(msg.image, "mono8")
-        boxes = self.face_cascade.detectMultiScale(image)
-        if len(boxes) != 0:
-            self.boxes = boxes[0]
-        pos.x = int(self.boxes[0])
-        pos.y = int(self.boxes[1])
-        pos.w = int(self.boxes[2])
-        pos.h = int(self.boxes[3])
+        detection_boxes = self.face_cascade.detectMultiScale(image)
+        if len(detection_boxes) != 0:
+            boxes = detection_boxes[0]
+        pos.x = int(boxes[0])
+        pos.y = int(boxes[1])
+        pos.w = int(boxes[2])
+        pos.h = int(boxes[3])
         return pos
 
 
@@ -127,9 +138,9 @@ if __name__ == "__main__":
     main()
 ```
 
+### face_detect/client.py  
 
-  - face_detect/client.py
-```python:client.py
+```python
 import cv2
 import rclpy
 from cv_bridge import CvBridge
@@ -200,8 +211,8 @@ if __name__ == "__main__":
 ```
 
 
-  - launch/face_detect_launch.py
-  
+### launch/face_detect_launch.py
+
 ```python
 from launch import LaunchDescription
 from launch_ros.actions import Node
@@ -231,20 +242,22 @@ def generate_launch_description():
 ```
 
 
-4. `package.xml`への追記  
+### `package.xml`への追記  
 先程作った独自メッセージを使うために`package.xml`の14行目あたりに以下のように追記する。  
+
 ```xml
   <build_depend>face_msgs</build_depend>
   <exec_depend>face_msgs</exec_depend>
 ```
-5. `setup.py`への追記  
-
+### `setup.py`への追記
 `setup.py`に以下を追記する。  
+
 ```python
 import os
 from glob import glob
 ```
-また、data_filesに以下を追記する。  
+data_filesに以下を追記する。  
+
 ```python
 (os.path.join("share", package_name), glob("launch/*_launch.py")),
 ```
@@ -252,7 +265,7 @@ from glob import glob
 ```python
 "client=face_detect.client:main", "server=face_detect.server:main",
 ```
-6. ビルド  
+### ビルド  
 ```bash
 $ colcon build
 $ . install/setup.bash
@@ -263,8 +276,23 @@ import warnings
 warnings.filterwarnings("ignore")
 ```  
 とすればよい。  
-7. 起動  
- ```bash
+  
+### 起動  
+```bash
 $ ros2 launch face_detect face_detect_launch.py 
 ```
-検出してマーカーが引かれているかの確認は、`client`が確認用のトピック`image_display`に画像をpublishしているので、rqtでそれを確認する。
+検出してマーカーが引かれているかの確認は、`client`が確認用のトピック`image_display`に画像をpublishしているので、rqtでそれを確認する。  
+![rqt_graph](https://user-images.githubusercontent.com/8480644/155850635-4ca410a1-ed2c-4846-96b3-6d2aefecbf0c.png)
+
+動作は以下のようになった  
+\*塗りつぶし処理後  
+
+https://user-images.githubusercontent.com/8480644/154873004-270db3d3-d0a7-4fa1-81e6-0e058b4f280c.mp4
+
+
+## 参考
+- [Understanding ROS 2 services](https://docs.ros.org/en/foxy/Tutorials/Services/Understanding-ROS2-Services.html)
+- [Writing a simple service and client (Python)](https://docs.ros.org/en/foxy/Tutorials/Writing-A-Simple-Py-Service-And-Client.html)
+- [Creating custom ROS 2 msg and srv files](https://docs.ros.org/en/foxy/Tutorials/Custom-ROS2-Interfaces.html)
+- [Haar Cascadesを使った顔検出](http://labs.eecs.tottori-u.ac.jp/sd/Member/oyamada/OpenCV/html/py_tutorials/py_objdetect/py_face_detection/py_face_detection.html)
+
